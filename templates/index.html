@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Management System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        button[type="submit"],
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+
+        button[type="submit"],
+        button {
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        button[type="submit"]:hover,
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 3px;
+        }
+
+        .delete-all-btn {
+            background-color: #dc3545;
+            color: #fff;
+            margin-top: 10px;
+            padding: 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 5px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+    </style>
+
+
+</head>
+<body>
+    <div class="container">
+        <h1>Customer Management System</h1>
+        <h2>Add Customer</h2>
+        <form id="addCustomerForm">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email">
+            <label for="phone">Phone:</label>
+            <input type="text" id="phone" name="phone">
+            <button type="submit">Add Customer</button>
+        </form>
+
+        <h2>Customers</h2>
+        <ul id="customerList"></ul>
+
+        <button id="refreshCustomers">Fetch Customers</button>
+        <button id="deleteSelectedCustomers" class="delete-all-btn">Delete Selected Customers</button>
+        </div>
+
+            <div id="updateModal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Update Customer</h2>
+                    <form id="updateCustomerForm">
+                        <label for="updateName">Name:</label>
+                        <input type="text" id="updateName" name="name">
+                        <label for="updateEmail">Email:</label>
+                        <input type="email" id="updateEmail" name="email">
+                        <label for="updatePhone">Phone:</label>
+                        <input type="text" id="updatePhone" name="phone">
+                        <button type="submit">Update Customer</button>
+                    </form>
+                </div>
+            </div>
+
+    <script>
+        document.getElementById('addCustomerForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+
+            if (!isValidName(name)) {
+                alert('Please enter a valid name.');
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+
+            if (!isValidPhone(phone)) {
+                alert('Please enter a valid phone number.');
+                return;
+            }
+
+            fetch('/add_customer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({name, email, phone})
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                document.getElementById('addCustomerForm').reset();
+            });
+        });
+
+        function isValidName(name) {
+            return /^[a-zA-Z\s]+$/.test(name);
+        }
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function isValidPhone(phone) {
+            return /^[0-9]{10}$/.test(phone);
+        }
+
+        function updateCustomer(id) {
+            fetch(`/get_customers`)
+            .then(response => response.json())
+            .then(customers => {
+                const customer = customers.find(c => c._id === id);
+                if (!customer) {
+                    alert('Customer not found');
+                    return;
+                }
+
+        // Fill the modal with customer details
+        document.getElementById('updateName').value = customer.name;
+        document.getElementById('updateEmail').value = customer.email;
+        document.getElementById('updatePhone').value = customer.phone;
+
+        // Show the modal
+        document.getElementById('updateModal').style.display = 'block';
+
+        // Handle form submission
+        document.getElementById('updateCustomerForm').onsubmit = function(event) {
+            event.preventDefault();
+            const newName = document.getElementById('updateName').value.trim();
+            const newEmail = document.getElementById('updateEmail').value.trim();
+            const newPhone = document.getElementById('updatePhone').value.trim();
+
+            if (!isValidName(newName)) {
+                alert('Please enter a valid name.');
+                return;
+            }
+
+            if (!isValidEmail(newEmail)) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+
+            if (!isValidPhone(newPhone)) {
+                alert('Please enter a valid phone number.');
+                return;
+            }
+
+            fetch(`/update_customer/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName, email: newEmail, phone: newPhone })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                document.getElementById('refreshCustomers').click(); // Refresh the customer list
+                document.getElementById('updateModal').style.display = 'none'; // Close the modal
+            });
+        };
+    });
+}
+
+    let selectedCustomers = {};
+
+    document.getElementById('deleteSelectedCustomers').addEventListener('click', function() {
+        // Convert the selectedCustomers object keys to an array
+        const selectedIds = Object.keys(selectedCustomers);
+
+        // Iterate over the selected customer IDs and delete them
+        selectedIds.forEach(id => {
+            fetch(`/delete_customer/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                document.getElementById('refreshCustomers').click(); // Refresh the customer list
+            });
+        });
+
+        // Clear the selectedCustomers object
+        selectedCustomers = {};
+    });
+
+    document.getElementById('refreshCustomers').addEventListener('click', function() {
+        fetch('/get_customers')
+        .then(response => response.json())
+        .then(customers => {
+            const customerList = document.getElementById('customerList');
+            customerList.innerHTML = '';
+            customers.forEach(customer => {
+                const li = document.createElement('li');
+
+                const customerInfo = document.createElement('div');
+                customerInfo.innerHTML = `<strong>Name:</strong> ${customer.name}<br>
+                                        <strong>Email:</strong> ${customer.email}<br>
+                                        <strong>Phone:</strong> ${customer.phone}`;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = customer._id;
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedCustomers[this.id] = true;
+                    } else {
+                        delete selectedCustomers[this.id];
+                    }
+                });
+
+                const updateButton = document.createElement('button');
+                updateButton.textContent = 'Update';
+                updateButton.onclick = () => updateCustomer(customer._id);
+                updateButton.style.marginRight = '10px'; // Add margin between update button and checkbox
+
+                const listItem = document.createElement('li');
+                listItem.style.display = 'flex'; // Use flexbox for alignment
+                listItem.style.justifyContent = 'space-between'; // Align items to the right
+                listItem.style.alignItems = 'center'; // Align items vertically in the center
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.style.display = 'flex'; // Use flexbox for alignment
+                actionsDiv.style.alignItems = 'center'; // Align items vertically in the center
+                actionsDiv.appendChild(updateButton);
+                actionsDiv.appendChild(checkbox);
+
+                listItem.appendChild(customerInfo);
+                listItem.appendChild(actionsDiv);
+
+                customerList.appendChild(listItem);
+
+
+            });
+        });
+    });
+</script>
+</body>
+</html>
